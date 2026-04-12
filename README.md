@@ -1,7 +1,7 @@
 # V0RTEX Banned Plugin List
 
 > **Private repository — D.V.V. access only.**
-> This repository is maintained exclusively by Vider_06 (D.V.V. — Dipartimento di Verifica V0RTEX).
+> Maintained exclusively by Vider_06 (D.V.V. — Dipartimento di Verifica V0RTEX).
 
 ---
 
@@ -16,10 +16,14 @@ V0RTEX fetches `banned.json` at every startup to perform ban checks against loca
 ## How V0RTEX uses this repository
 
 1. On startup, V0RTEX downloads `banned.json` from this repository
-2. It checks every plugin found in the local `plugins/` folder against `banned_plugins` (by plugin `id`) and `banned_accounts` (by `author` field in the plugin header)
-3. Any match results in an immediate block — no override, no exception
-4. If the system is offline, V0RTEX falls back to the local cache stored at the previous successful fetch
-5. If no cache exists yet (first run, no internet), the online ban check is skipped with a warning — local malware scan still runs
+2. For every plugin found in `plugins/`, V0RTEX computes three hashes and an AST token count locally
+3. It checks against `banned_plugins` (by id, by all three hashes) and `banned_accounts` (by author field)
+4. If no exact match is found, V0RTEX runs a **similarity check** combining hash distance and token count
+5. Any exact match → immediate block, no override
+6. Similarity ≥ 80% → local ban, blocked like a remote ban, no override
+7. Similarity 60–80% → warning shown to user, user can choose to continue
+8. If offline: falls back to local `banned_cache.json` from last successful fetch
+9. If no cache exists (first run, no internet): online ban check skipped with warning — local malware scan still runs
 
 ---
 
@@ -34,33 +38,66 @@ V0rtex-Banned-Plugins/
 
 ---
 
-## banned.json format
+## banned.json format — version 1.1
 
 ```json
 {
-  "_info": { ... },
+  "_info": {
+    "description": "V0RTEX Banned Plugin List — D.V.V. private repository",
+    "repository": "https://github.com/Vider06/V0rtex-Banned-Plugins",
+    "maintainer": "Vider_06",
+    "last_updated": "YYYY-MM-DD",
+    "format_version": "1.1"
+  },
   "banned_plugins": [
     {
-      "id": "plugin_id_snake_case",
-      "name": "Plugin Name",
-      "author": "GitHubUsername",
-      "sha256_hashes": ["hash_of_original", "hash_of_repost_1"],
-      "reason_category": "malicious_code",
-      "level": 3,
-      "banned_date": "YYYY-MM-DD",
-      "notes": "Internal D.V.V. note — not shown to users"
+      "id":               "plugin_id_snake_case",
+      "name":             "Plugin Name",
+      "author":           "GitHubUsername",
+      "hash_full":        ["sha256_of_exact_file", "sha256_of_repost"],
+      "hash_structural":  ["sha256_code_no_comments_no_docstrings"],
+      "hash_ast":         ["sha256_of_normalized_ast"],
+      "ast_token_count":  342,
+      "reason_category":  "malicious_code",
+      "level":            3,
+      "banned_date":      "YYYY-MM-DD",
+      "notes":            "Internal D.V.V. note — not shown to users"
     }
   ],
   "banned_accounts": [
     {
-      "github_username": "GitHubUsername",
-      "reason_category": "signature_forgery",
-      "level": 4,
-      "banned_date": "YYYY-MM-DD"
+      "github_username":  "GitHubUsername",
+      "reason_category":  "signature_forgery",
+      "level":            4,
+      "banned_date":      "YYYY-MM-DD"
     }
   ]
 }
 ```
+
+### Hash fields explained
+
+| Field | What it hashes | Purpose |
+|---|---|---|
+| `hash_full` | Entire file, byte for byte | Catches exact copies |
+| `hash_structural` | Code with all `#` comments and docstrings removed | Catches reposts that only change header/comments |
+| `hash_ast` | Normalized AST (variable and function names stripped) | Catches reposts with superficial refactoring |
+| `ast_token_count` | Number of AST nodes in the structural code | Used in similarity scoring alongside hash distance |
+
+All three fields are arrays — add a new hash for each confirmed repost variant.
+
+### Similarity scoring
+
+When no exact hash match is found, V0RTEX computes a combined similarity score:
+
+- **60% weight** — Hamming distance on `hash_structural` (bit-level similarity)
+- **40% weight** — token count ratio: `min(local, banned) / max(local, banned)`
+
+| Score | Action |
+|---|---|
+| < 60% | No action — plugin is considered different |
+| 60–80% | Warning shown to user — user may choose to continue |
+| > 80% | Plugin banned locally, written to `local_ban_cache.json`, blocked with no override |
 
 ### reason_category values
 
@@ -87,43 +124,35 @@ V0rtex-Banned-Plugins/
 
 ## Adding a ban
 
+### Before adding any entry
+
+Compute the three hashes using V0RTEX's own hashing functions (available as a standalone utility — see `v0rtex_utils/`). Do not compute hashes manually.
+
+Required values:
+- `hash_full` — SHA-256 of the raw plugin `.py` file
+- `hash_structural` — SHA-256 of the file after stripping `#` comments and docstrings via AST
+- `hash_ast` — SHA-256 of the normalized AST dump (variable/function names replaced with placeholders)
+- `ast_token_count` — integer node count from the normalized AST
+
 ### Plugin ban (Level 3)
 
-Add an entry to `banned_plugins`:
-
-```json
-{
-  "id": "plugin_id",
-  "name": "Plugin Name",
-  "author": "GitHubUsername",
-  "sha256_hashes": ["sha256_of_the_plugin_file"],
-  "reason_category": "malicious_code",
-  "level": 3,
-  "banned_date": "2026-04-12",
-  "notes": "Internal note"
-}
-```
-
-Update `_info.last_updated` and add a row to `ENFORCEMENT_LOG.md`.
+1. Add an entry to `banned_plugins` with all four hash fields populated
+2. Update `_info.last_updated`
+3. Add a row to `ENFORCEMENT_LOG.md`
 
 ### Account ban (Level 4)
 
-Add an entry to `banned_accounts` AND add the plugin entry to `banned_plugins` if applicable:
-
-```json
-{
-  "github_username": "GitHubUsername",
-  "reason_category": "signature_forgery",
-  "level": 4,
-  "banned_date": "2026-04-12"
-}
-```
-
-Update `_info.last_updated` and add a row to `ENFORCEMENT_LOG.md`.
+1. Add an entry to `banned_accounts`
+2. Also add or update the plugin entry in `banned_plugins` if applicable
+3. Update `_info.last_updated`
+4. Add a row to `ENFORCEMENT_LOG.md`
 
 ### Handling reposts
 
-If a banned plugin is reposted under a different name or id, add the new sha256 to the existing entry's `sha256_hashes` array. V0RTEX checks hashes independently of the id, so a repost with a different name but identical code is caught automatically. If the code was modified, add a new `banned_plugins` entry with the new id and update the author's `banned_accounts` entry if a Level 4 is warranted.
+If a banned plugin reappears under a different name or id:
+- If the code is **identical** → same `hash_full`, add the new file's hash to the existing entry's arrays. V0RTEX catches it via hash match regardless of id.
+- If the code is **lightly modified** → `hash_full` differs but `hash_structural` or `hash_ast` may still match. Add the new hashes to the arrays.
+- If the code is **substantially rewritten** → add a new `banned_plugins` entry. If it is the same author, escalate to Level 4 (`ban_evasion`) and add to `banned_accounts`.
 
 ---
 
