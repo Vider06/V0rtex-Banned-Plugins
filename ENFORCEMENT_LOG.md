@@ -9,7 +9,7 @@ Not downloaded or used by V0RTEX — for D.V.V. internal use only.
 
 | Date | Target | Type | Level | Reason Category | Notes |
 |---|---|---|---|---|---|
-| 2026-04-12 | test_clean_unverified | plugin | 3 | malicious_code | la |
+| — | — | — | — | — | No actions yet |
 
 ---
 
