@@ -6,6 +6,26 @@
     "last_updated": "2026-04-12",
     "format_version": "1.1"
   },
-  "banned_plugins": [],
+  "banned_plugins": [
+    {
+  "id": "test_clean_unverified",
+  "name": "Test Clean Unverified",
+  "author": "TestUser",
+  "hash_full": [
+    "8e54abca6f178add1f911b46b6a37d7c748ae2f97928355348388233f9b403fb"
+  ],
+  "hash_structural": [
+    "ce965fef89af0f5e304961953e34a6f74610963d07f929aee0ad878f538a9f5e"
+  ],
+  "hash_ast": [
+    "159c8d0fa4fd2fa3733039532e6f4284d2546406d89754792a4fb7ac2a368b79"
+  ],
+  "ast_token_count": 74,
+  "reason_category": "policy_violation",
+  "level": 3,
+  "banned_date": "2026-04-13",
+  "notes": "BRO NUH UH"
+}
+  ],
   "banned_accounts": []
 }
