@@ -9,7 +9,7 @@ Not downloaded or used by V0RTEX — for D.V.V. internal use only.
 
 | Date | Target | Type | Level | Reason Category | Notes |
 |---|---|---|---|---|---|
-| — | — | — | — | — | No actions yet |
+| 2026-04-13 | test_clean_unverified | plugin | 3 | policy_violation | BRO NUH UH |
 
 ---
 
