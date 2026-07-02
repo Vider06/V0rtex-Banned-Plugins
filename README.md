@@ -1,7 +1,7 @@
 # V0RTEX Banned Plugin List
 
-> **Private repository — D.V.V. access only.**
-> Maintained exclusively by Vider_06 (D.V.V. — Dipartimento di Verifica V0RTEX).
+> **Private repository — S.E.A. access only.**
+> Maintained exclusively by Vider_06 (S.E.A. - Security Enforcement Authority)
 
 ---
 
